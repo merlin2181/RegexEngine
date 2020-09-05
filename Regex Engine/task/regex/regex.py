@@ -1,13 +1,13 @@
-def regex_func():
-    regex, search_str = input().split('|')
-    # if not regex and not search_str:
-        # return False
-    if regex in search_str or not regex:
+def regex_func(pattern, search_str):
+    if not pattern:
         return True
-    if regex == '.' and len(search_str) == 1:
-        return True
-    if not search_str or regex not in search_str:
+    if not search_str:
+        return False
+    if pattern[0] == search_str[0] or pattern[0] == '.':
+        return regex_func(pattern[1:], search_str[1:])
+    else:
         return False
 
 
-print(regex_func())
+regex, search = input().split('|')
+print(regex_func(regex, search))
