@@ -1,4 +1,4 @@
-def match_func(pattern, search_str):
+def match_func(pattern, search_str, escape=False):
     """
     Function that cycles through a regex pattern and search string to see if it can find the
     pattern in the search string.  If it does, the function returns True. If it doesn't the
@@ -11,13 +11,54 @@ def match_func(pattern, search_str):
         return True
     if not search_str:
         return False
-    if pattern[0] == search_str[0] or pattern[0] == '.':
-        return match_func(pattern[1:], search_str[1:])
+    if not escape:
+        if pattern[0] == search_str[0] or pattern[0] == '.':
+            return match_func(pattern[1:], search_str[1:])
+        else:
+            return match_func(pattern, search_str[1:])
     else:
-        return match_func(pattern, search_str[1:])
+        if pattern[0] == search_str[0]:
+            return match_func(pattern[1:], search_str[1:], True)
+        else:
+            return match_func(pattern, search_str[1:], True)
 
 
-def carat(pattern, search_str):
+def escape_backslash(pattern, search_str):
+    """
+    Function that parses out the '\' escape character and the succeeding character and
+    passes the pattern literal to use while searching the search string.
+    :pattern: the pattern to search for in the user inputted search string
+    :search_str: the user inputted search string
+    :return: returns the all() of the attempts list or match_func with escape set to True
+    """
+    attempts = []
+    side = []
+    left, right = pattern.split('\\', 1)
+    pattern = left + right
+    if right[0] == '.':
+        escape = True
+    else:
+        escape = False
+    for item in wildcards:
+        if item in left:
+            attempts.append(func_dict[item](left, search_str, escape))
+            side.append('Left')
+        elif item in right[1:]:
+            attempts.append(func_dict[item](right, search_str, escape))
+            side.append('Right')
+    if 'Left' in side and 'Right' in side:
+        return all(attempts)
+    elif 'Left' not in side and 'Right' in side:
+        attempts.append(match_func(left, search_str, escape))
+        return all(attempts)
+    elif 'Right' not in side and 'Left' in side:
+        attempts.append(match_func(right, search_str, escape))
+        return all(attempts)
+    else:
+        return match_func(pattern, search_str, True)
+
+
+def carat(pattern, search_str, escape=False):
     """
     Function that checks for an occurrence related to a character(s) with a '^'
     before it and continues to parse the search string
@@ -43,7 +84,7 @@ def carat(pattern, search_str):
     return match_func(pattern, search_str[:len(pattern)])
 
 
-def keene_plus(pattern, search_str):
+def keene_plus(pattern, search_str, escape=False):
     """
     Function that checks for one or more occurrences related to a character with a '+'
     after it and continues to parse the search string
@@ -59,7 +100,7 @@ def keene_plus(pattern, search_str):
         return check_one_or_more(pattern, search_str, char)
 
 
-def keene_star(pattern, search_str):
+def keene_star(pattern, search_str, escape=False):
     """
     Function that checks for zero or more occurrences related to a character with a '*'
     after it and continues to parse the search string
@@ -77,7 +118,7 @@ def keene_star(pattern, search_str):
         return check_one_or_more(pattern, search_str, char)
 
 
-def keene_mark(pattern, search_str):
+def keene_mark(pattern, search_str, escape=False):
     """
     Function that checks for zero or one occurrence related to a character with a '?'
     after it and continues to parse the search string
@@ -97,7 +138,7 @@ def keene_mark(pattern, search_str):
         return search_strings(pattern_two, search_str)
 
 
-def dollar_sign(pattern, search_str):
+def dollar_sign(pattern, search_str, escape=False):
     """
     Function that checks one or more occurrences related to a character with a '+' or '*'
     after it and continues to parse the search string
@@ -108,7 +149,7 @@ def dollar_sign(pattern, search_str):
     index = pattern.index('$')
     if index == 0 and len(search_str) > 0:
         return False
-    return match_func(pattern[:index], search_str[-index:])
+    return match_func(pattern[:index], search_str[-index:], escape)
 
 
 def check_one_or_more(pattern, search_str, char):
@@ -159,8 +200,9 @@ def search_strings(pattern, search_str):
     return match_func(pattern, search_str)
 
 
-wildcards = ('^', '+', '?', '*', '$')
-func_dict = {'^': carat,
+wildcards = ('\\', '^', '+', '?', '*', '$')
+func_dict = {'\\': escape_backslash,
+             '^': carat,
              '$': dollar_sign,
              '?': keene_mark,
              '*': keene_star,
